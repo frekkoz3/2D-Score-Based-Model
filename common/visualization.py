@@ -1,98 +1,258 @@
+from __future__ import annotations
+
+from typing import Callable, Optional
+
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
+
 from common.datasets import *
 
-def plot_distribution(
-    distribution : Distribution2D,
-    n_samples: int = 5000,
-    ax=None,
-    figsize=(6, 6),
-    alpha=0.5,
-    s=5,
-):
-    """
-    Plot samples from a 2D distribution.
+class DistributionVisualizer:
 
-    Parameters
+    def __init__(
+        self,
+        distribution : Distribution2D,
+        resolution: int = 50,
+        figsize=(6, 6),
+    ):
 
-    distribution : Distribution2D
-        Distribution to visualize.
+        self.distribution = distribution
+        self.resolution = resolution
+        self.figsize = figsize
 
-    n_samples : int
-        Number of sampled points.
+        self.xmin, self.xmax, self.ymin, self.ymax = distribution.bounds
 
-    ax : matplotlib.axes.Axes, optional
-        Existing axes.
+        self.xx, self.yy, self.points = self._make_meshgrid()
 
-    figsize : tuple
-        Figure size.
+    def _make_meshgrid(self):
 
-    alpha : float
-        Scatter transparency.
+        xs = torch.linspace(
+            self.xmin,
+            self.xmax,
+            self.resolution,
+        )
 
-    s : float
-        Scatter point size.s
+        ys = torch.linspace(
+            self.ymin,
+            self.ymax,
+            self.resolution,
+        )
 
-    Returns
+        xx, yy = torch.meshgrid(
+            xs,
+            ys,
+            indexing="xy",
+        )
 
-    fig, ax
-    """
+        points = torch.stack(
+            [
+                xx.flatten(),
+                yy.flatten(),
+            ],
+            dim=1,
+        )
 
-    samples = distribution.sample(n_samples)
+        return xx, yy, points
 
-    if isinstance(samples, torch.Tensor):
-        samples = samples.cpu().numpy()
+    def _setup_axes(self, ax):
 
-    if ax is None:
-        fig, ax = plt.subplots(figsize=figsize)
-    else:
-        fig = ax.figure
+            ax.set_xlim(self.xmin, self.xmax)
+            ax.set_ylim(self.ymin, self.ymax)
 
-    ax.scatter(
-        samples[:, 0],
-        samples[:, 1],
-        s=s,
-        alpha=alpha,
-    )
+            ax.set_xlabel(r"$x_1$")
+            ax.set_ylabel(r"$x_2$")
 
-    if hasattr(distribution, "bounds"):
-        xmin, xmax, ymin, ymax = distribution.bounds
-        ax.set_xlim(xmin, xmax)
-        ax.set_ylim(ymin, ymax)
+            ax.set_aspect("equal")
+            ax.grid(alpha=0.3)
 
-    ax.set_xlabel(r"$x_1$")
-    ax.set_ylabel(r"$x_2$")
-    ax.set_aspect("equal")
-    ax.grid(alpha=0.3)
+    def plot_distribution(
+        self,
+        n_samples=5000,
+        ax=None,
+        **kwargs,
+    ):
 
-    return fig, ax
+        samples = self.distribution.sample(n_samples)
 
-def make_meshgrid(distribution, resolution=100):
-    """
-    Creates a regular grid covering the distribution bounds.
+        if isinstance(samples, torch.Tensor):
+            samples = samples.numpy()
 
-    Returns
+        if ax is None:
+            fig, ax = plt.subplots(figsize=self.figsize)
+        else:
+            fig = ax.figure
 
-    xx, yy : meshgrid
-    points : Tensor of shape (resolution^2, 2)
-    """
+        ax.scatter(
+            samples[:, 0],
+            samples[:, 1],
+            s=5,
+            alpha=0.5,
+            **kwargs,
+        )
 
-    xmin, xmax, ymin, ymax = distribution.bounds
+        self._setup_axes(ax)
 
-    xs = torch.linspace(xmin, xmax, resolution)
-    ys = torch.linspace(ymin, ymax, resolution)
+        ax.set_title("Samples")
 
-    xx, yy = torch.meshgrid(xs, ys, indexing="xy")
+        return fig, ax
 
-    points = torch.stack(
-        [xx.flatten(), yy.flatten()],
-        dim=1,
-    )
+    def plot_density(
+        self,
+        ax=None,
+        cmap="viridis",
+    ):
 
-    return xx, yy, points
+        if ax is None:
+            fig, ax = plt.subplots(figsize=self.figsize)
+        else:
+            fig = ax.figure
+
+        with torch.no_grad():
+
+            if hasattr(self.distribution, "log_prob"):
+
+                values = self.distribution.log_prob(
+                    self.points
+                )
+
+            else:
+
+                raise NotImplementedError("The distribution does not provide an interface for the log probability")
+
+        values = values.reshape(
+            self.resolution,
+            self.resolution,
+        )
+
+        im = ax.imshow(
+            values.numpy(),
+            origin="lower",
+            extent=[
+                self.xmin,
+                self.xmax,
+                self.ymin,
+                self.ymax,
+            ],
+            cmap=cmap,
+        )
+
+        plt.colorbar(im, ax=ax)
+
+        self._setup_axes(ax)
+
+        ax.set_title("Log density")
+
+        return fig, ax
+
+    def plot_theoretical_score_field(
+        self,
+        ax=None,
+        normalize=False
+    ):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=self.figsize)
+        else:
+            fig = ax.figure
+
+        with torch.no_grad():
+
+            if hasattr(self.distribution, "score"):
+
+                score = self.distribution.score(
+                    self.points
+                )
+
+            else:
+
+                raise NotImplementedError("The distribution does not provide an interface for the score")
+
+        score = score.numpy()
+        
+        u = score[:, 0].reshape(
+            self.resolution,
+            self.resolution,
+        )
+
+        v = score[:, 1].reshape(
+            self.resolution,
+            self.resolution,
+        )
+
+        if normalize:
+
+            mag = np.sqrt(u**2 + v**2)
+
+            mag = np.maximum(mag, 1e-8)
+
+            u /= mag
+            v /= mag
+
+        ax.quiver(
+            self.xx,
+            self.yy,
+            u,
+            v,
+        )
+
+        self._setup_axes(ax)
+
+        ax.set_title("Score field")
+
+        return fig, ax
+
+    def plot_empirical_score_field(
+        self,
+        score_fn: Callable,
+        ax=None,
+        normalize=False
+    ):
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=self.figsize)
+        else:
+            fig = ax.figure
+
+        with torch.no_grad():
+            score = score_fn(self.points)
+
+        score = score.numpy()
+
+        u = score[:, 0].reshape(
+            self.resolution,
+            self.resolution,
+        )
+
+        v = score[:, 1].reshape(
+            self.resolution,
+            self.resolution,
+        )
+
+        if normalize:
+
+            mag = np.sqrt(u**2 + v**2)
+
+            mag = np.maximum(mag, 1e-8)
+
+            u /= mag
+            v /= mag
+
+        ax.quiver(
+            self.xx,
+            self.yy,
+            u,
+            v,
+        )
+
+        self._setup_axes(ax)
+
+        ax.set_title("Score field")
+
+        return fig, ax
 
 if __name__ == '__main__':
 
-    distr = GaussianMixture2D(((0, 0), (1, 3)))
-    fig, axs = plot_distribution(distr)
+    distr = TwoMoons()
+    visualizer = DistributionVisualizer(distr)
+    fig, axs = visualizer.plot_density()
     plt.show()
