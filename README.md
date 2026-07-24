@@ -57,7 +57,7 @@ We will use the simplest conditioning strategy: labelling.
     ├── sampling.py             # Langevin and utilities
     ├── utils.py                # Utilities
     └── visualization.py        # plotting helpers
-└── exp/
+├── exp/
     ├── learning/
         ├── README.md
         ├── train.py
@@ -68,6 +68,7 @@ We will use the simplest conditioning strategy: labelling.
     └── conditional_sampling/
         ├── README.md
         └── sample.py
+└── resources/                  
 ```
 
 ## Requirements

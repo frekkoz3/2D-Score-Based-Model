@@ -151,6 +151,10 @@ class GaussianMixture2D(Distribution2D):
         std=0.25,
         weights=None,
     ):
+
+        assert len(weights) == self.n_components
+        assert len(covs) == self.n_components
+
         self.means = torch.as_tensor(means, dtype=torch.float32)
 
         self.n_components = self.means.shape[0]
@@ -189,12 +193,14 @@ class GaussianMixture2D(Distribution2D):
             replacement=True,
         )
 
-        samples = []
+        samples = torch.empty(n, 2)
 
-        for idx in indices:
-            samples.append(
-                self.components[idx].sample()
-            )
+        for i, component in enumerate(self.components):
+            mask = indices == i
+            k = mask.sum()
+
+            if k > 0:
+                samples[mask] = component.sample((k,))
 
         return torch.stack(samples)
 

@@ -250,6 +250,58 @@ class DistributionVisualizer:
 
         return fig, ax
 
+    def plot_trajectory(
+        self,
+        trajectory,
+        ax=None,
+        every=1,
+        alpha=0.4,
+        lw=1.0,
+    ):
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=self.figsize)
+        else:
+            fig = ax.figure
+
+        for i in range(0, trajectory.shape[1], every):
+            ax.plot(
+                trajectory[:, i, 0],
+                trajectory[:, i, 1],
+                alpha=alpha,
+                linewidth=lw,
+            )
+
+        ax.scatter(
+            trajectory[-1,:,0],
+            trajectory[-1,:,1],
+            s=8,
+        )
+
+    def plot_samples(
+        self,
+        samples: torch.Tensor,
+        ax=None
+    ):
+
+        if isinstance(samples, torch.Tensor):
+            samples = samples.detach().cpu().numpy()
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=self.figsize)
+        else:
+            fig = ax.figure
+
+        ax.scatter(
+            samples[:, 0],
+            samples[:, 1],
+            s = 8,
+        )
+
+        ax.set_title("Generated samples")
+
+        return fig, ax
+
 if __name__ == '__main__':
 
     distr = TwoMoons()
