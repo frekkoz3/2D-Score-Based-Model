@@ -1,25 +1,7 @@
 import torch
 import torch.nn as nn
 
-
 class MLPBackbone(nn.Module):
-    """
-    Generic MLP backbone.
-
-    Parameters
-
-    input_dim : int
-        Dimension of the input vector.
-
-    hidden_dim : int
-        Hidden layer width.
-
-    output_dim : int
-        Dimension of the output vector.
-
-    n_hidden : int
-        Number of hidden layers.
-    """
 
     def __init__(
         self,
