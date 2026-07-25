@@ -20,3 +20,11 @@ def get_distribution(name: str, **kwargs):
     raise ValueError(
         f"Unknown distribution '{name}'"
     )
+
+def perturb(x, sigma):
+    
+    noise = torch.randn_like(x)
+
+    x_noisy = x + sigma[:, None] * noise
+
+    return x_noisy, noise

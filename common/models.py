@@ -51,7 +51,8 @@ class ScoreMLP(nn.Module):
             n_hidden=n_hidden,
         )
 
-    def forward(self, x):
+    def forward(self, x, cond : None):
+        # cond is just a placeholder to make the loss work without problem
         return self.backbone(x)
 
 class SigmaEmbedding(nn.Module):
