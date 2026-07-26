@@ -105,7 +105,7 @@ class Gaussian2D(Distribution2D):
     def log_prob(self, x: torch.Tensor) -> torch.Tensor:
         return self.dist.log_prob(x)
 
-    def score(self, x: torch.Tensor) -> torch.Tensor:
+    def score(self, x: torch.Tensor, sigma) -> torch.Tensor:
         # closed formula for gaussian score
         diff = x - self.mean
         return -(diff @ self.inv_cov.T)
@@ -151,9 +151,6 @@ class GaussianMixture2D(Distribution2D):
         std=0.25,
         weights=None,
     ):
-
-        assert len(weights) == self.n_components
-        assert len(covs) == self.n_components
 
         self.means = torch.as_tensor(means, dtype=torch.float32)
 
@@ -202,7 +199,7 @@ class GaussianMixture2D(Distribution2D):
             if k > 0:
                 samples[mask] = component.sample((k,))
 
-        return torch.stack(samples)
+        return samples
 
     def log_prob(self, x):
         """
@@ -224,7 +221,7 @@ class GaussianMixture2D(Distribution2D):
 
         return torch.logsumexp(log_probs, dim=0)
 
-    def score(self, x):
+    def score(self, x, sigma):
         """
             Since p(x) = sum_i phi_i N(x | mu_i, Sigma_i), then 
 

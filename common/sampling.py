@@ -42,15 +42,11 @@ class LangevinSampler(Sampler):
 
             with torch.no_grad():
 
-                score = self.score_fn(x)
+                score = self.score_fn(x, sigma = None)
 
             noise = torch.randn_like(x)
 
-            x = (
-                x
-                + self.step_size * score
-                + np.sqrt(2 * self.step_size) * noise
-            )
+            x = (x + self.step_size * score + np.sqrt(2 * self.step_size) * noise)
 
             if return_trajectory:
                 trajectory.append(x.clone())
@@ -87,8 +83,8 @@ class AnnealedLangevinSampler(Sampler):
         self,
         score_fn,
         sigmas,
-        step_size=1e-4,
-        steps_per_sigma=100,
+        step_size=1e-6,
+        steps_per_sigma=200,
     ):
         self.score_fn = score_fn
 
@@ -99,17 +95,22 @@ class AnnealedLangevinSampler(Sampler):
 
     def sample(
         self,
-        x0,
+        n_samples,
+        x0=None,
         return_trajectory=False,
     ):
 
-        x = x0.clone()
-
         trajectory = []
-        sigma_history = []
+        
+        if x0 is None:
+            x = torch.randn(n_samples, 2)
+        else: 
+            x = x0
 
         if return_trajectory:
             trajectory.append(x.clone())
+
+        sigma_history = []
 
         sigma_min = self.sigmas[-1]
 
@@ -123,18 +124,11 @@ class AnnealedLangevinSampler(Sampler):
 
                 with torch.no_grad():
 
-                    score = self.score_fn(
-                        x,
-                        sigma,
-                    )
+                    score = self.score_fn(x, sigma)
 
                 noise = torch.randn_like(x)
 
-                x = (
-                    x
-                    + alpha * score
-                    + math.sqrt(2.0 * alpha) * noise
-                )
+                x = (x + alpha * score + math.sqrt(2.0 * alpha) * noise)
 
                 if return_trajectory:
                     trajectory.append(x.clone())
@@ -159,7 +153,8 @@ if __name__ == '__main__':
 
     viz = DistributionVisualizer(distr)
 
-    sampler = LangevinSampler(distr.score)
+    # sampler = LangevinSampler(distr.score)
+    sampler = AnnealedLangevinSampler(distr.score, sigmas=torch.tensor([1.0, 0.5, 0.2, 0.1, 0.05, 0.01]))
 
     samples, trajectory = sampler.sample(1000, return_trajectory = True)
 
