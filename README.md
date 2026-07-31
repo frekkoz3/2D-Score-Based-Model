@@ -6,6 +6,8 @@ Rather than working with high-dimensional image datasets, all experiments are bu
 
 Again, the goal of this repository is understanding, not providing a state of the art implementation.
 
+> **STILL IN PROGRESS**
+
 ## Experiments
 
 There will be 3 main experiments in the repository:
