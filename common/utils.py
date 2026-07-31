@@ -25,6 +25,6 @@ def perturb(x, sigma):
     
     noise = torch.randn_like(x)
 
-    x_noisy = x + sigma[:, None] * noise
+    x_noisy = x + sigma.unsqueeze(-1) * noise
 
     return x_noisy, noise

@@ -130,10 +130,10 @@ class GaussianMixture2D(Distribution2D):
 
     Parameters
     
-        mean : tuple or Tensor of shape (2,)
+        mean : tuple or Tensor of shape (n_components,)
             Mean vector.
     
-        cov : Tensor of shape (2,2), optional
+        cov : Tensor of shape (n_components, n_components), optional
             Covariance matrix.
     
         std : float, optional

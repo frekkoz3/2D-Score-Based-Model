@@ -160,7 +160,7 @@ class DistributionVisualizer:
             if hasattr(self.distribution, "score"):
 
                 score = self.distribution.score(
-                    self.points
+                    self.points, None
                 )
 
             else:
@@ -204,6 +204,7 @@ class DistributionVisualizer:
     def plot_empirical_score_field(
         self,
         score_fn: Callable,
+        sigma = None,
         ax=None,
         normalize=False
     ):
@@ -214,7 +215,7 @@ class DistributionVisualizer:
             fig = ax.figure
 
         with torch.no_grad():
-            score = score_fn(self.points)
+            score = score_fn(self.points, sigma)
 
         score = score.numpy()
 

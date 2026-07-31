@@ -110,6 +110,7 @@ class NoiseConditionalScoreMLP(nn.Module):
     ):
 
         sigma = self.sigma_embedding(sigma)
+        sigma = sigma.expand(x.shape[0], -1)
 
         x = torch.cat(
             [
